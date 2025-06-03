@@ -38,13 +38,60 @@ jobs:
   - name: Make a release
     uses: ncipollo/release-action@v1
     with:
-      artifacts: "${{github.workspace}}/build/*.deb,${{github.workspace}}/build/*.tar.gz,${{github.workspace}}/build/*.zip"
+      artifacts: "${{github.workspace}}/build/*.deb,${{github.workspace}}/build/*.tar.gz,${{github.workspace}}/build/*.zip,${{github.workspace}}/build/*.rpm"
       tag: 1.0.0
       token: ${{ secrets.GITHUB_TOKEN }}
       allowUpdates: true
 
-  - name: Arts
-    uses: actions/upload-artifact@v4
-    with:
-        name: lab06
-        path: ${{github.workspace}}/build/lab06
+ build_macOS:
+   runs-on: macos-latest
+
+   steps:
+     - uses: actions/checkout@v4
+
+     - name: Configure and build
+       run: |
+         rm -rf ${{ github.workspace }}/build
+         mkdir build && cd build
+         cmake ..
+         cmake --build .
+
+     - name: cpack
+       run: |
+         cd ${{ github.workspace }}/build
+         cpack
+
+     - name: Make a release DMG
+       uses: ncipollo/release-action@v1
+       with:
+         artifacts: ${{ github.workspace }}/build/*.dmg
+         tag: 1.0.0
+         token: ${{ secrets.GITHUB_TOKEN }}
+         allowUpdates: true
+
+ build_Windows:
+   runs-on: windows-latest
+
+   steps:
+     - uses: actions/checkout@v4
+
+     - name: Install WiX
+       run: choco install wixtoolset -y
+
+     - name: Configure and Build
+       run: |
+         cmake -B build -DCMAKE_BUILD_TYPE=Release
+         cmake --build build --config Release
+
+     - name: CPack MSI
+       run: |
+         cd build
+         cpack
+
+     - name: Make a release MSI
+       uses: ncipollo/release-action@v1
+       with:
+         artifacts: ${{ github.workspace }}/build/*.msi
+         tag: 1.0.0
+         token: ${{ secrets.GITHUB_TOKEN }}
+         allowUpdates: true
